@@ -67,13 +67,14 @@ public class ChooseAreaActivity extends Activity{
 				}else if(level==LEVEL_CITY){
 					selectedCity=citylist.get(position);
 					queryCounty();
-				}else if(level==LEVEL_COUNTY){
-					String countycode = countylist.get(position).getCountyCode();
-					Intent intent=new Intent(ChooseAreaActivity.this, ChooseAreaActivity.class);
-					intent.putExtra("countycode", countycode);
-					startActivity(intent);
-					finish();
-				}	
+				}
+//				else if(level==LEVEL_COUNTY){
+//					String countycode = countylist.get(position).getCountyCode();
+//					Intent intent=new Intent(ChooseAreaActivity.this, ChooseAreaActivity.class);
+//					intent.putExtra("countycode", countycode);
+//					startActivity(intent);
+//					finish();
+//				}	
 			}
 		});
 	    queryProvince();
@@ -93,21 +94,7 @@ public class ChooseAreaActivity extends Activity{
 			queryFromServer(null,"province");
 		}
 	}
-	private void queryCounty() {
-		// TODO Auto-generated method stub
-		countylist = coolWeatherDB.loadCounties(selectedCity.getId());
-		if(countylist.size()>0){
-			dataList.clear();
-			for(County county:countylist){
-				dataList.add(county.getCountyName());
-			}
-			adapter.notifyDataSetChanged();
-			textview.setText(selectedCity.getCityName());
-			level=LEVEL_COUNTY;
-		}else
-			queryFromServer(selectedCity.getCityCode(), "county");
-	}
-
+	
 	private void queryCity() {
 		// TODO Auto-generated method stub
 		citylist=coolWeatherDB.loadCities(selectedProvince.getId());
@@ -118,11 +105,29 @@ public class ChooseAreaActivity extends Activity{
 			}
 			adapter.notifyDataSetChanged();
 			listview.setSelection(0);
-			textview.setText(selectedProvince.getProvinceCode());
+			textview.setText(selectedProvince.getProvinceName());
 			level=LEVEL_CITY;
 		}else
 			queryFromServer(selectedProvince.getProvinceCode(), "city");
 	}
+	
+	private void queryCounty() {
+		// TODO Auto-generated method stub
+		countylist = coolWeatherDB.loadCounties(selectedCity.getId());
+		if(countylist.size()>0){
+			dataList.clear();
+			for(County county:countylist){
+				dataList.add(county.getCountyName());
+			}
+			adapter.notifyDataSetChanged();
+			listview.setSelection(0);
+			textview.setText(selectedCity.getCityName());
+			level=LEVEL_COUNTY;
+		}else
+			queryFromServer(selectedCity.getCityCode(), "county");
+	}
+
+	
 	private void queryFromServer(String code, final String type) {
 		// TODO Auto-generated method stub
 		String address;
@@ -144,6 +149,7 @@ public class ChooseAreaActivity extends Activity{
 				else if("county".equals(type))
 				    result=Util.handleCountiesResponse(coolWeatherDB, response, selectedCity.getId());
 			    if(result){
+			    	//runOnUiThread回到主线程处理逻辑
 			    	runOnUiThread(new Runnable() {
 						
 						@Override
@@ -170,7 +176,7 @@ public class ChooseAreaActivity extends Activity{
 					public void run() {
 						// TODO Auto-generated method stub
 						closeProgressDialog();
-						Toast.makeText(ChooseAreaActivity.this, "exception", Toast.LENGTH_SHORT);
+						Toast.makeText(ChooseAreaActivity.this, "exception", Toast.LENGTH_SHORT).show();
 					}
 				});
 			}
@@ -186,8 +192,23 @@ public class ChooseAreaActivity extends Activity{
 		if(progressDialog==null){
 			progressDialog=new ProgressDialog(this);
 			progressDialog.setMessage("正在加载...");
-			progressDialog.setCanceledOnTouchOutside(true);
+			progressDialog.setCanceledOnTouchOutside(false);
 		}
 		progressDialog.show();
+	}
+	/*
+	 * (non-Javadoc)
+	 * @see android.app.Activity#onBackPressed()
+	 * 捕获back键，选择回退键功能
+	 */
+	@Override
+	public void onBackPressed() {
+		// TODO Auto-generated method stub
+		if(level==LEVEL_COUNTY){
+			queryCity();
+		}else if(level==LEVEL_CITY){
+			queryProvince();
+		}else
+			finish();
 	}
 }
